@@ -95,7 +95,7 @@
       />
     </div>
 
-    <Accordion multiple lazy>
+    <Accordion lazy>
       <AccordionPanel v-for="site in sites" :key="site.name" :value="site.name">
         <AccordionHeader>{{ site.name }}</AccordionHeader>
         <AccordionContent>

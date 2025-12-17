@@ -32,7 +32,7 @@
       <label for="lon">Longitude</label>
     </FloatLabel>
 
-    <Accordion multiple value="1" v-if="advanced">
+    <Accordion v-if="advanced">
       <AccordionPanel pt:root:class="border-0" value="0">
         <AccordionHeader>Advanced</AccordionHeader>
         <AccordionContent pt:root:class="pt-1">
