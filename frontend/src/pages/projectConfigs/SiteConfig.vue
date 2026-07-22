@@ -3,7 +3,7 @@
     <template #title>Sites</template>
     <template #content>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Accordion multiple v-model:value="curSite" lazy>
+        <Accordion v-model:value="curSite" lazy>
           <AccordionPanel
             v-for="site in sites"
             :key="site.name"
@@ -20,6 +20,7 @@
                 "
                 :site="site"
                 @update="name => (curSite = name)"
+                @delete="onSiteDeleted"
                 @updateMarker="updateMarker"
                 @deleteMarker="deleteMarker"
               />
@@ -128,6 +129,11 @@ function updateMarker(lat: number, lng: number) {
 
 function deleteMarker() {
   marker.value = undefined
+}
+
+function onSiteDeleted() {
+  deleteMarker()
+  curSite.value = '__new'
 }
 
 function mapClick(event: L.LeafletMouseEvent) {
