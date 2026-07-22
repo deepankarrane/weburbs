@@ -18,7 +18,7 @@ services:
       - HTTPS_ONLY=False
       # ADMIN_USERNAMES is in admin.env (comma-separated list)
       # Insert API key for Renewable Ninjas
-      - RN_KEY=$RN_KEY
+      - RN_KEY=${RN_KEY}
       - SQL_ENGINE=django.db.backends.postgresql
       - SQL_DATABASE=urbs
       - SQL_USER=urbs
@@ -26,7 +26,7 @@ services:
       - SQL_HOST=db
       - SQL_PORT=5432
       # Resend (transactional email)
-      - RESEND_API_KEY=$RESEND_API_KEY
+      - RESEND_API_KEY=${RESEND_API_KEY}
       - EMAIL_FROM=noreply@urbs-energymodel.com
       - EMAIL_FROM_NAME=WebUrbs
     depends_on:
@@ -79,7 +79,7 @@ services:
   # pinggy:
   #   image: alpine:3.20
   #   container_name: weburbs-pinggy
-  #   command: sh -c "apk add --no-cache openssh-client && ssh -p 443 -o StrictHostKeyChecking=no -N -R 80:reverse-proxy:9000 -l $PINGGY_TOKEN a.pinggy.io"
+  #   command: sh -c "apk add --no-cache openssh-client && ssh -p 443 -o StrictHostKeyChecking=no -N -R 80:reverse-proxy:9000 -l ${PINGGY_TOKEN} a.pinggy.io"
   #   depends_on:
   #     - reverse-proxy
   #   networks:
