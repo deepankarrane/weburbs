@@ -92,18 +92,18 @@ const { mutate: deleteTimeVarEff } = useDeleteTimeVarEff(
 )
 const { data: commodities } = useCommodities(route, props.site)
 const unitC = computed(() => {
-  if (!commodities.value || !props.process) return 'kWh'
+  if (!commodities.value || !props.process) return 'MWh'
   if (props.process.out.length > 0)
     return (
       commodities.value.find(c => c.name === props.process.out[0].name)
-        ?.unitC || 'kWh'
+        ?.unitC || 'MWh'
     )
   if (props.process.in.length > 0)
     return (
       commodities.value.find(c => c.name === props.process.in[0].name)?.unitC ||
-      'kWh'
+      'MWh'
     )
-  return 'kWh'
+  return 'MWh'
 })
 
 const data: Ref<Partial<Plotly.Data>[]> = computed(() => {
