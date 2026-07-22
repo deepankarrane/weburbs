@@ -10,6 +10,14 @@
       />
       <label for="name">Name</label>
     </FloatLabel>
+    <Message
+      v-if="nameValidationError"
+      severity="error"
+      variant="simple"
+      size="small"
+    >
+      {{ nameValidationError }}
+    </Message>
     <FloatLabel variant="on">
       <Textarea
         fluid
@@ -100,7 +108,7 @@
       </FloatLabel>
     </div>
 
-    <Accordion multiple value="1" v-if="advanced">
+    <Accordion v-if="advanced">
       <AccordionPanel pt:root:class="border-0" value="0">
         <AccordionHeader>Advanced</AccordionHeader>
         <AccordionContent pt:root:class="pt-1">
@@ -109,7 +117,7 @@
               <FloatLabel variant="on">
                 <InputNumber
                   :invalid="invalids.includes('maxgrad')"
-                  :max-fraction-digits="2"
+                  :max-fraction-digits="6"
                   v-tooltip.bottom="
                     'Maximum allowed power gradient relative to power throughput capacity. Set value to negative or greater than 1/dt to disable it. '
                   "
@@ -225,7 +233,7 @@
                       "
                       v-model="inCom.ratiomin"
                       :invalid="
-                        inCom.ratiomin === undefined || inCom.ratiomin < 0
+                        inCom.ratiomin != null && inCom.ratiomin < 0
                       "
                     />
                     <label for="ratiomin">Minimum ratio</label>
@@ -279,7 +287,7 @@
                       "
                       v-model="outCom.ratiomin"
                       :invalid="
-                        outCom.ratiomin === undefined || outCom.ratiomin < 0
+                        outCom.ratiomin != null && outCom.ratiomin < 0
                       "
                     />
                     <label for="ratiomin">Minimum ratio</label>
@@ -323,6 +331,7 @@ import {
   useDefCommodities,
   useProjectSiteCommodities,
 } from '@/backend/commodities'
+import { getNameValidationError } from '@/helper/nameValidation'
 import { useRoute } from 'vue-router'
 
 const toast = useToast()
@@ -356,7 +365,7 @@ const coms = computed(() => {
         disp_name: com.name,
         default: false,
         ratio: 1,
-        ratiomin: 1,
+        ratiomin: undefined,
         unit: com.type === CommodityType.Demand,
         unitR: com.unitR,
         unitC: com.unitC,
@@ -372,7 +381,7 @@ const coms = computed(() => {
           disp_name: def_com.name + ' (Default)',
           default: true,
           ratio: 1,
-          ratiomin: 1,
+          ratiomin: undefined,
           unit: def_com.type === CommodityType.Demand,
           unitR: def_com.unitR,
           unitC: def_com.unitC,
@@ -444,13 +453,13 @@ watch(
 )
 
 const unitR = computed(
-  () => outComs.value?.find(com => com.unit)?.unitR || 'kW',
+  () => outComs.value?.find(com => com.unit)?.unitR || 'MW',
 )
 const unitRboxed = computed(() =>
   unitR.value.includes('/') ? `(${unitR.value})` : unitR.value,
 )
 const unitC = computed(
-  () => outComs.value?.find(com => com.unit)?.unitC || 'kWh',
+  () => outComs.value?.find(com => com.unit)?.unitC || 'MWh',
 )
 const unitCboxed = computed(() =>
   unitR.value.includes('/') ? `(${unitC.value})` : unitC.value,
@@ -475,10 +484,12 @@ watch(
 )
 
 const invalids = ref<string[]>([])
+const nameValidationError = computed(() => getNameValidationError(name.value))
 
 function check() {
   invalids.value = []
   if (!name.value) invalids.value.push('name')
+  if (getNameValidationError(name.value)) invalids.value.push('name')
 
   if (instcap.value === undefined || instcap.value < 0)
     invalids.value.push('instcap')
@@ -515,13 +526,13 @@ function check() {
   for (const inCom of inComs.value) {
     if (inCom.ratio !== undefined && inCom.ratio < 0)
       invalids.value.push('inComRatio')
-    if (inCom.ratiomin !== undefined && inCom.ratiomin < 0)
+    if (inCom.ratiomin != null && inCom.ratiomin < 0)
       invalids.value.push('inComRatioMin')
   }
   for (const outCom of outComs.value) {
     if (outCom.ratio !== undefined && outCom.ratio < 0)
       invalids.value.push('outComRatio')
-    if (outCom.ratiomin !== undefined && outCom.ratiomin < 0)
+    if (outCom.ratiomin != null && outCom.ratiomin < 0)
       invalids.value.push('outComRatioMin')
   }
 
@@ -532,7 +543,9 @@ function submit() {
   if (!check()) {
     toast.add({
       summary: 'Error',
-      detail: 'Not all fields have been filled properly',
+      detail:
+        nameValidationError.value ||
+        'Not all fields have been filled properly',
       severity: 'error',
       life: 2000,
     })
@@ -557,14 +570,14 @@ function submit() {
       return {
         name: com.name,
         ratio: com.ratio,
-        ratiomin: com.ratiomin,
+        ratiomin: com.ratiomin ?? null,
       }
     }),
     out: outComs.value.map(com => {
       return {
         name: com.name,
         ratio: com.ratio,
-        ratiomin: com.ratiomin,
+        ratiomin: com.ratiomin ?? null,
       }
     }),
   })

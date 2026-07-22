@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 import pandas as pd
 
+from projects.api.helper import validate_excel_names_http_response, validate_name_http_response
 from projects.models import (
     Project,
     Site,
@@ -39,11 +40,43 @@ def default():
     return defaultdict(default)
 
 
+def is_zeroish(value):
+    if value is None:
+        return True
+    if isinstance(value, str):
+        value = value.strip()
+        if value == "":
+            return True
+    try:
+        return float(value) == 0.0
+    except (TypeError, ValueError):
+        return False
+
+
+def read_maxgrad(row):
+    if "ramp-up-grad" in row and not pd.isna(row["ramp-up-grad"]):
+        return parse_num(row["ramp-up-grad"])
+    if "max-grad" in row and not pd.isna(row["max-grad"]):
+        return parse_num(row["max-grad"])
+    return None
+
+
+def read_steps(series):
+    values = series.tolist()
+    if values and is_zeroish(values[0]):
+        return values[1:]
+    return values
+
+
 @login_required
 @require_POST
 def upload(request, project_name):
     if Project.objects.filter(user=request.user, name=project_name).exists():
         return HttpResponse("Project name already exists", status=409)
+
+    err = validate_name_http_response(project_name, "Project name")
+    if err:
+        return err
 
     if "file" not in request.FILES:
         return HttpResponse("File is missing", status=400)
@@ -51,13 +84,17 @@ def upload(request, project_name):
     uploaded_file = request.FILES["file"]
 
     with pd.ExcelFile(uploaded_file) as xls:
+        err = validate_excel_names_http_response(xls, project_name)
+        if err:
+            return err
+
         global_prop = xls.parse("Global").set_index(["Property"])
         if "CO2 limit" in global_prop.value:
-            co2limit = global_prop.value["CO2 limit"]
+            co2limit = parse_num(global_prop.value["CO2 limit"])
         else:
             co2limit = 150000000
         if "Cost limit" in global_prop.value:
-            costlimit = global_prop.value["Cost limit"]
+            costlimit = parse_num(global_prop.value["Cost limit"])
         else:
             costlimit = 35000000000
 
@@ -89,8 +126,8 @@ def upload(request, project_name):
                 price=parse_num(row["price"]),
                 max=parse_num(row["max"]),
                 maxperhour=parse_num(row["maxperhour"]),
-                unitC="kWh",
-                unitR="kW",
+                unitC="MWh",
+                unitR="MW",
             )
             com.save()
             coms[row["Site"]][row["Commodity"]] = com
@@ -104,7 +141,7 @@ def upload(request, project_name):
                 instcap=parse_num(row["inst-cap"]),
                 caplo=parse_num(row["cap-lo"]),
                 capup=parse_num(row["cap-up"]),
-                maxgrad=parse_num(row["max-grad"]),
+                maxgrad=read_maxgrad(row),
                 minfraction=parse_num(row["min-fraction"]),
                 invcost=parse_num(row["inv-cost"]),
                 fixcost=parse_num(row["fix-cost"]),
@@ -165,14 +202,14 @@ def upload(request, project_name):
                 commodity=coms[site][com],
                 name="imported",
                 quantity=1,
-                steps=demand_tab[key].tolist()[1::],
+                steps=read_steps(demand_tab[key]),
             )
             demand.save()
 
         supim_tab = xls.parse("SupIm").set_index(["t"])
         for key in supim_tab:
             site, com = key.split(".")
-            supim = SupIm(commodity=coms[site][com], steps=supim_tab[key].tolist()[1::])
+            supim = SupIm(commodity=coms[site][com], steps=read_steps(supim_tab[key]))
             supim.save()
 
         transmission_tab = xls.parse("Transmission")
@@ -216,7 +253,7 @@ def upload(request, project_name):
 
         bsp_tab = xls.parse("Buy-Sell-Price").set_index(["t"])
         for com in bsp_tab:
-            steps = bsp_tab[com].tolist()[1::]
+            steps = read_steps(bsp_tab[com])
             bsp = BuySellPrice(
                 project=project,
                 name=com,
@@ -230,7 +267,7 @@ def upload(request, project_name):
             site = Site.objects.get(project=project, name=site)
             process = Process.objects.get(site=site, name=proc)
 
-            tve = TimeVarEff(process=process, steps=tve_tab[key].tolist()[1::])
+            tve = TimeVarEff(process=process, steps=read_steps(tve_tab[key]))
             tve.save()
 
     return HttpResponse("Project created")

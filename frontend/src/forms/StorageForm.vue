@@ -10,6 +10,14 @@
       />
       <label for="name">Name</label>
     </FloatLabel>
+    <Message
+      v-if="nameValidationError"
+      severity="error"
+      variant="simple"
+      size="small"
+    >
+      {{ nameValidationError }}
+    </Message>
     <FloatLabel variant="on">
       <Textarea
         fluid
@@ -100,7 +108,7 @@
       </FloatLabel>
     </div>
 
-    <Accordion multiple value="1" v-if="advanced">
+    <Accordion v-if="advanced">
       <AccordionPanel pt:root:class="border-0" value="0">
         <AccordionHeader>Advanced</AccordionHeader>
         <AccordionContent pt:root:class="pt-1">
@@ -330,6 +338,7 @@ import {
   useDefCommodities,
   useProjectSiteCommodities,
 } from '@/backend/commodities'
+import { getNameValidationError } from '@/helper/nameValidation'
 
 const toast = useToast()
 const route = useRoute()
@@ -429,14 +438,14 @@ const commodity = ref<ComTag | undefined>(
         name: props.storage.commodity,
         disp_name: props.storage.commodity,
         default: false,
-        unitR: 'kW',
-        unitC: 'kWh',
+        unitR: 'MW',
+        unitC: 'MWh',
       }
     : undefined,
 )
 
-const unitR = computed(() => commodity.value?.unitR || 'kW')
-const unitC = computed(() => commodity.value?.unitC || 'kWh')
+const unitR = computed(() => commodity.value?.unitR || 'MW')
+const unitC = computed(() => commodity.value?.unitC || 'MWh')
 watch(
   commodities,
   () => {
@@ -478,10 +487,12 @@ enum Errors {
 }
 
 const invalids = ref<Errors[]>([])
+const nameValidationError = computed(() => getNameValidationError(name.value))
 
 function check() {
   invalids.value = []
   if (!name.value) invalids.value.push(Errors.name)
+  if (getNameValidationError(name.value)) invalids.value.push(Errors.name)
 
   if (instcapc.value === undefined || instcapc.value < 0)
     invalids.value.push(Errors.instcapc)
@@ -568,7 +579,9 @@ function submit() {
   if (!check()) {
     toast.add({
       summary: 'Error',
-      detail: 'Not all fields have been filled properly',
+      detail:
+        nameValidationError.value ||
+        'Not all fields have been filled properly',
       severity: 'error',
       life: 2000,
     })
