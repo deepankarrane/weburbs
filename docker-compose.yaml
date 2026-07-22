@@ -12,8 +12,8 @@ services:
       - URBS=http://optimizer:5000/simulate
       - URBS_CALLBACK=http://backend:8000
       # Replace localhost by your domain, or add more domains, separated by comma
-      # - ORIGINS=https://www.urbs-energymodel.com,https://urbs-energymodel.com,http://localhost
-      - ORIGINS=http://localhost
+      # ORIGINS is set via .env (defaults to http://localhost if unset)
+      - ORIGINS=${ORIGINS:-http://localhost}
       # True for production HTTPS only; False allows login on http://localhost
       - HTTPS_ONLY=False
       # ADMIN_USERNAMES is in admin.env (comma-separated list)
@@ -27,8 +27,8 @@ services:
       - SQL_PORT=5432
       # Resend (transactional email)
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - EMAIL_FROM=noreply@urbs-energymodel.com
-      - EMAIL_FROM_NAME=WebUrbs
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
     depends_on:
       - db
     networks:
