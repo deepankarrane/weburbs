@@ -19,14 +19,24 @@ const props = defineProps<{
   titleY2?: string
   bargap?: number
   bargroupgap?: number
+  barmode?: 'stack' | 'group' | 'overlay' | 'relative'
   margin?: { t?: number; b?: number; l?: number; r?: number }
 }>()
 
 function layout(): Partial<Plotly.Layout> {
+  // Check if data contains negative values to determine barmode
+  const hasNegativeValues = props.data.some(trace => {
+    const traceData = trace as any
+    if (traceData.y && Array.isArray(traceData.y)) {
+      return traceData.y.some((v: number) => v < 0)
+    }
+    return false
+  })
+  
   return {
     bargap: props.bargap || 0,
     bargroupgap: props.bargroupgap || 0,
-    barmode: 'stack',
+    barmode: props.barmode ?? (hasNegativeValues ? 'group' : 'stack'),
     title: props.title
       ? {
           text: props.title,
@@ -53,7 +63,6 @@ function layout(): Partial<Plotly.Layout> {
         text: props.titleY,
       },
       side: 'left',
-      rangemode: 'nonnegative',
     },
     yaxis2: {
       title: {
