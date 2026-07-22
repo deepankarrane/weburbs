@@ -275,8 +275,8 @@ const commodity = ref<ComTag | undefined>(
   props.transmission?.commodity
     ? {
         name: props.transmission?.commodity,
-        unitR: 'kW',
-        unitC: 'kWh',
+        unitR: 'MW',
+        unitC: 'MWh',
       }
     : undefined,
 )
@@ -318,8 +318,8 @@ watch(
   },
   { immediate: true },
 )
-const unitR = computed(() => commodity.value?.unitR || 'kW')
-const unitC = computed(() => commodity.value?.unitC || 'kWh')
+const unitR = computed(() => commodity.value?.unitR || 'MW')
+const unitC = computed(() => commodity.value?.unitC || 'MWh')
 
 const type = ref(defaultValue(props.transmission?.type, TransmissionType.hvac))
 
